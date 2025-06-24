@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Speed Reading Trainer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-4">
+  <h1 class="text-3xl font-bold mb-4">🧠 Speed Reading & Chunk Trainer</h1>
+
+  <div class="mb-4">
+    <label for="difficulty" class="block text-lg mb-1">📚 Choose Difficulty Level:</label>
+    <select id="difficulty" class="bg-gray-800 text-white p-2 rounded-lg border border-gray-600">
+      <option value="">-- Select Level --</option>
+      <option value="1">Level 1 (Very Easy)</option>
+      <option value="2">Level 2 (Easy)</option>
+      <option value="3">Level 3 (Intermediate)</option>
+      <option value="4">Level 4 (Upper-Intermediate)</option>
+      <option value="5">Level 5 (Advanced)</option>
+      <option value="6">Level 6 (Classic Literature - Very Hard)</option>
+    </select>
+  </div>
+
+  <div id="paragraphButtons" class="mb-4 flex flex-wrap gap-2"></div>
+
+  <textarea id="inputText" rows="6" placeholder="Paste your English text here or select a classic passage..." class="w-full max-w-2xl p-3 rounded-lg bg-gray-800 border border-gray-600 mb-4 text-white"></textarea>
+
+  <div class="flex items-center gap-4 mb-4">
+    <label for="wpm" class="text-lg">WPM:</label>
+    <input type="range" id="wpm" min="100" max="600" value="250" step="50" class="w-64">
+    <span id="wpmDisplay">250</span>
+  </div>
+
+  <div class="flex gap-4 mb-6">
+    <button onclick="startReading()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg text-lg">Start</button>
+    <button onclick="pauseReading()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg text-lg">Pause</button>
+    <button onclick="cancelReading()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg text-lg">Cancel</button>
+  </div>
+
+  <div id="display" class="mt-4 text-4xl font-semibold h-32 flex items-center justify-center text-center px-4"></div>
+
+  <script>
+    const display = document.getElementById('display');
+    const wpmSlider = document.getElementById('wpm');
+    const wpmDisplay = document.getElementById('wpmDisplay');
+    const difficultySelect = document.getElementById('difficulty');
+    const paragraphButtons = document.getElementById('paragraphButtons');
+    const inputText = document.getElementById('inputText');
+
+    wpmSlider.addEventListener('input', () => {
+      wpmDisplay.textContent = wpmSlider.value;
+    });
+
+    let chunks = [];
+    let index = 0;
+    let timer = null;
+    let isPaused = false;
+
+    const classicTexts = {
+      1: [
+        "The dog runs. The cat sleeps. I see a bird.",
+        "She eats food. He drinks milk. We play now.",
+        "It is hot. The sun is up. We go out."
+      ],
+      2: [
+        "The children walked to school. They talked about their homework.",
+        "The cat jumped on the table. It knocked over a glass.",
+        "He opened the old book. Dust flew into the air."
+      ],
+      3: [
+        "She looked at the letter in her hand. It had no return address.",
+        "The room was quiet. Only the ticking of the clock was heard.",
+        "A cold wind blew through the trees. Leaves danced across the path."
+      ],
+      4: [
+        "The ship sailed slowly into the fog, its mast disappearing.",
+        "He paused before speaking, eyes fixed on the candlelight.",
+        "The carriage arrived late, its wheels muddy from the storm."
+      ],
+      5: [
+        "It was the best of times, it was the worst of times, it was the age of wisdom...",
+        "Call me Ishmael. Some years ago—never mind how long precisely...",
+        "All happy families are alike; each unhappy family is unhappy in its own way."
+      ],
+      6: [
+        "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife. However little known the feelings or views of such a man may be on his first entering a neighbourhood, this truth is so well fixed in the minds of the surrounding families, that he is considered as the rightful property of some one or other of their daughters. 'My dear Mr. Bennet,' said his lady to him one day, 'have you heard that Netherfield Park is let at last?' Mr. Bennet replied that he had not. 'But it is,' returned she; 'for Mrs. Long has just been here, and she told me all about it.' Mr. Bennet made no answer. 'Do not you want to know who has taken it?' cried his wife impatiently. 'You want to tell me, and I have no objection to hearing it.'"
+      ]
+    };
+
+    difficultySelect.addEventListener('change', () => {
+      const level = difficultySelect.value;
+      paragraphButtons.innerHTML = '';
+      if (classicTexts[level]) {
+        classicTexts[level].forEach((text, i) => {
+          const btn = document.createElement('button');
+          btn.textContent = `Passage ${i + 1}`;
+          btn.className = "bg-purple-600 hover:bg-purple-700 px-4 py-1 rounded text-white text-sm";
+          btn.onclick = () => inputText.value = text;
+          paragraphButtons.appendChild(btn);
+        });
+      }
+    });
+
+    function chunkText(text, chunkSize = 3) {
+      const words = text.trim().split(/\s+/);
+      let chunks = [];
+      for (let i = 0; i < words.length; i += chunkSize) {
+        chunks.push(words.slice(i, i + chunkSize).join(" "));
+      }
+      return chunks;
+    }
+
+    function startReading() {
+      if (!isPaused) {
+        const rawText = inputText.value;
+        chunks = chunkText(rawText);
+        index = 0;
+      }
+      const wpm = parseInt(wpmSlider.value);
+      const interval = 60000 / wpm; // Fixed time per chunk
+      isPaused = false;
+
+      if (timer) clearInterval(timer);
+      timer = setInterval(() => {
+        if (index >= chunks.length) {
+          clearInterval(timer);
+          display.textContent = "✅ Done!";
+          return;
+        }
+        display.textContent = chunks[index];
+        index++;
+      }, interval);
+    }
+
+    function pauseReading() {
+      if (timer) {
+        clearInterval(timer);
+        isPaused = true;
+        display.textContent += " ⏸";
+      }
+    }
+
+    function cancelReading() {
+      if (timer) {
+        clearInterval(timer);
+      }
+      display.textContent = "❌ Cancelled";
+      index = 0;
+      chunks = [];
+      isPaused = false;
+    }
+  </script>
+</body>
+</html>
